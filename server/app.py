@@ -25,6 +25,40 @@ db.init_app(app)
 def home():
     return ''
 
+@app.route('/scientists', methods=['GET', 'POST'])
+def scientist():
+    if request.method == 'GET':
+        all_scientist = Scientist.query.all()
+        scientist_list = [scientist.to_dict() for scientist in all_scientist]
+        response = make_response(scientist_list, 200)
+        return response
+    elif request.method == 'POST':
+        data = request.get_json()
+        try:
+            scientist = Scientist(
+                name=data['name'],
+                field_of_study=data['field_of_study'],
+            )
+            db.session.add(scientist)
+            db.session.commit()
+            response = make_response(scientist.to_dict(), 201)
+            return response
+        except Exception as e:
+            response_dict = { 'errors': [e.__str__()]}
+            response = make_response(response_dict, 422)
+            return response
+            
+
+@app.route('/scientists/<int:id>')
+def scientist_by_id(id):
+    scientist = Scientist.query.filter_by(id=id).first()
+    if scientist:
+        response = make_response(scientist.to_dict(rules=('missions', '-missions.scientist',)), 200)
+        return response
+    else:
+        response = make_response({'error':'Scientist not found'}, 404)
+        return response
+
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
